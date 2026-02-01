@@ -33,7 +33,7 @@ window.DEBUG_MODE = true;
 window.INFO_MODE = true;
 window.WARN_MODE = true;
 window.ERROR_MODE = true;
-window.ERROR_LOGS = true;
+window.ERROR_LOGS = false;
 
 /**
  * Логгер с поддержкой различных уровней логирования
@@ -826,6 +826,31 @@ window.checkVolumeStatus = () => {
   return info;
 };
 
+// Функция для проверки состояния Service Worker
+window.checkSWStatus = () => {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then((registration) => {
+      const info = {
+        controller: navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : 'none',
+        activeWorker: registration.active ? registration.active.scriptURL : 'none',
+        scope: registration.scope,
+        updateViaCache: registration.updateViaCache,
+        waitingWorker: registration.waiting ? registration.waiting.scriptURL : 'none',
+        installingWorker: registration.installing ? registration.installing.scriptURL : 'none',
+      };
+      console.table(info);
+      logger.info('Service Worker status checked', info);
+      return info;
+    }).catch((error) => {
+      logger.error('Error checking SW status', error);
+      return { error: error.message };
+    });
+  } else {
+    console.log('Service Worker не поддерживается');
+    return { error: 'Service Worker не поддерживается' };
+  }
+};
+
 // Логирование действий пользователя
 window.addEventListener('beforeunload', () => {
   logger.info('=== ПРИЛОЖЕНИЕ ЗАКРЫВАЕТСЯ ===', {
@@ -847,3 +872,71 @@ document.addEventListener('visibilitychange', () => {
 // Инициализация плеера
 logger.info('Document ready, initializing player');
 initPlayer();
+
+// Проверка обновлений PWA
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js')
+    .then((registration) => {
+      logger.info('Service Worker зарегистрирован', {
+        scope: registration.scope,
+        updateViaCache: registration.updateViaCache
+      });
+
+      // Проверяем обновления при загрузке
+      registration.update();
+
+      // Слушаем сообщения от Service Worker
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        logger.info('Сообщение от Service Worker', {
+          data: event.data
+        });
+      });
+
+      // Проверяем обновления при изменении статуса
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        logger.info('Найдено обновление Service Worker');
+
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // Доступно обновление, активируем его, но не перезагружаем сразу
+            logger.info('Доступно обновление приложения');
+
+            // Отправляем сообщение новому worker для пропуска ожидания
+            newWorker.postMessage({ type: 'SKIP_WAITING' });
+
+            // Планируем обновление после завершения текущих операций
+            setTimeout(() => {
+              logger.info('Выполняем обновление приложения');
+              window.location.reload();
+            }, 1000); // Задержка для завершения активации SW
+          }
+        });
+      });
+
+      // Если есть ожидающий worker, активируем его
+      if (registration.waiting) {
+        logger.info('Обнаружен ожидающий Service Worker');
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+
+        // Планируем обновление
+        setTimeout(() => {
+          logger.info('Выполняем обновление приложения');
+          window.location.reload();
+        }, 1000);
+      }
+    })
+    .catch((error) => {
+      logger.error('Ошибка регистрации Service Worker', {
+        error: error.message
+      });
+    });
+
+  // Проверяем, контролирует ли Service Worker страницу
+  if (navigator.serviceWorker.controller) {
+    logger.info('Service Worker активен и контролирует страницу');
+  } else {
+    logger.info('Service Worker не контролирует страницу, перезагрузка...');
+    window.location.reload();
+  }
+}
