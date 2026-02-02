@@ -9,25 +9,25 @@ class VideoPlayer {
    * Открывает контейнер для видео
    */
   openVideoContainer() {
-    console.log(this.videoContainer);
-    console.log(this.videoContainer.classList);
-
     if (this.videoContainer && this.videoContainer.classList.contains('visibal')) {
       // Очищаем контейнер перед добавлением нового iframe
       this.closeVideo();
 
       this.iframe = document.createElement('iframe');
-      this.iframe.src = 'https://vkvideo.ru/video_ext.php?oid=-383476&id=456247029&hash=a3a0d805faa5d04c';
-      this.iframe.width = '640';
-      this.iframe.height = '360';
-      this.iframe.allowFullscreen = '1';
+      this.iframe.src = 'https://vk.com/video_ext.php?oid=-383476&id=456247029&hash=a3a0d805faa5d04c';
+      this.iframe.className = 'video-iframe';
       this.iframe.style.backgroundColor = '#000';
       this.iframe.style.borderWidth = '1px';
       this.iframe.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture';
 
+      // Создаем обертку для адаптивного видео
+      const videoWrapper = document.createElement('div');
+      videoWrapper.className = 'video-wrapper';
+      videoWrapper.appendChild(this.iframe);
+
       // Проверяем, что контейнер существует перед добавлением
       if (this.videoContainer) {
-        this.videoContainer.appendChild(this.iframe);
+        this.videoContainer.appendChild(videoWrapper);
         this.isActive = true;
       } else {
         console.warn('Video container not found');
@@ -51,9 +51,15 @@ class VideoPlayer {
 
       // Удаляем iframe и освобождаем ресурсы
       this.iframe.src = 'about:blank'; // Очищаем источник перед удалением
-      if (this.iframe.parentNode) {
+
+      // Находим родительский элемент (обертку) и удаляем его
+      const wrapper = this.iframe.parentNode;
+      if (wrapper && wrapper.parentNode) {
+        wrapper.parentNode.removeChild(wrapper);
+      } else if (this.iframe.parentNode) {
         this.iframe.parentNode.removeChild(this.iframe);
       }
+
       this.iframe = null;
     } else if (this.videoContainer) {
       this.videoContainer.innerHTML = '';

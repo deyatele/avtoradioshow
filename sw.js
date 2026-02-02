@@ -1,5 +1,5 @@
 // Service Worker для PWA
-const VERSION = 'v1.0.2';
+const VERSION = 'v1.0.9';
 const CACHE_NAME = 'avtoradio-pwa-' + VERSION;
 const urlsToCache = [
   './',
@@ -11,7 +11,6 @@ const urlsToCache = [
   './utils.js',
   './loging.js',
   './hls.js',
-  './manifest.json',
   './favicon.ico',
   './assets/fonts/all.min.css',
   './assets/fonts/fa-solid-900.woff2',

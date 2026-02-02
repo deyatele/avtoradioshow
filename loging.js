@@ -3,7 +3,7 @@ window.DEBUG_MODE = true;
 window.INFO_MODE = true;
 window.WARN_MODE = true;
 window.ERROR_MODE = true;
-window.ERROR_LOGS = true;
+window.ERROR_LOGS = false;
 
 /**
  * Логгер с поддержкой различных уровней логирования
