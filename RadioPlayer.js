@@ -16,11 +16,22 @@ class RadioPlayer {
 
     // Состояния
     this.hls = null;
-    this.isNativePlayback = false; // Флаг для отслеживания нативного воспроизведения на iOS
     this.isStoppingPlayback = false; // Флаг для игнорирования ошибок при намеренной остановке
     this.isMuted = StorageUtils.getItem('radioMuted', false);
     this.currentVolume = StorageUtils.getItem('radioVolume', 1);
     this.isBuffering = false;
+
+    // Проверяем, является ли устройство iOS и какая версия
+    this.isIOS = PlatformUtils.isIOS();
+    this.isOldIOS = this.isIOS && PlatformUtils.isOldIOS();
+
+    if (this.isIOS && this.isOldIOS) {
+      // Для старых версий iOS (до 14) создаем скрытый видеоэлемент для HLS воспроизведения
+      this.createHiddenVideoElement();
+    }
+
+    // Определяем элемент, который будем использовать для воспроизведения
+    this.mediaElement = this.isIOS && this.isOldIOS ? this.videoElement : this.radioPlayer;
 
     // Переменные для логики переподключения
     this.fatalRetryCount = 0;
@@ -58,6 +69,29 @@ class RadioPlayer {
     };
 
     this.init();
+  }
+
+  /**
+   * Создает скрытый видеоэлемент для iOS
+   */
+  createHiddenVideoElement() {
+    // Создаем видеоэлемент
+    this.videoElement = document.createElement('video');
+    this.videoElement.style.display = 'none';
+    this.videoElement.setAttribute('preload', 'none');
+    this.videoElement.setAttribute('playsinline', '');
+    this.videoElement.setAttribute('webkit-playsinline', '');
+    this.videoElement.setAttribute('aria-label', 'Видеоплеер (для iOS)');
+
+    // Добавляем в DOM после существующего audio элемента
+    this.radioPlayer.parentNode.insertBefore(this.videoElement, this.radioPlayer.nextSibling);
+  }
+
+  /**
+   * Возвращает текущий элемент воспроизведения (аудио или видео)
+   */
+  getCurrentMediaElement() {
+    return this.isOldIOS ? this.videoElement : this.radioPlayer;
   }
 
   /**
@@ -130,7 +164,7 @@ class RadioPlayer {
       this.playButton.innerHTML = '<div class="spinner" aria-label="Загрузка..."></div>';
       this.playButton.setAttribute('aria-label', 'Загрузка...');
       this.playButton.title = 'Загрузка...';
-    } else if ((this.hls || this.isNativePlayback) && !this.radioPlayer.paused) {
+    } else if (this.hls && !this.getCurrentMediaElement().paused) {
       this.playButton.innerHTML = '<i class="fas fa-stop" aria-hidden="true"></i>';
       this.playButton.setAttribute('aria-label', 'Остановить воспроизведение');
       this.playButton.title = 'Остановить воспроизведение';
@@ -158,12 +192,13 @@ class RadioPlayer {
    * Обновляет громкость аудиоэлемента и сохраняет значение в localStorage
    */
   updateVolume() {
-    this.radioPlayer.volume = this.isMuted ? 0 : this.currentVolume;
+    const mediaElement = this.getCurrentMediaElement();
+    mediaElement.volume = this.isMuted ? 0 : this.currentVolume;
     this.volumeSlider.value = this.currentVolume;
     StorageUtils.setItem('radioVolume', this.currentVolume);
 
     logger.debug('Volume update', {
-      volume: this.radioPlayer.volume,
+      volume: mediaElement.volume,
       currentVolume: this.currentVolume,
       isMuted: this.isMuted,
       sliderValue: this.volumeSlider.value,
@@ -175,8 +210,9 @@ class RadioPlayer {
    * @param {string} networkState - состояние сети ('buffering', 'reconnecting', 'playing', 'offline')
    */
   updateStatusIndicators(networkState) {
-    this.playStatus.classList.toggle('playing', (this.hls || this.isNativePlayback) && !this.radioPlayer.paused);
-    this.playStatus.classList.toggle('muted', !((this.hls || this.isNativePlayback) && !this.radioPlayer.paused));
+    const mediaElement = this.getCurrentMediaElement();
+    this.playStatus.classList.toggle('playing', this.hls && !mediaElement.paused);
+    this.playStatus.classList.toggle('muted', !(this.hls && !mediaElement.paused));
 
     this.soundStatus.classList.toggle('muted', this.isMuted);
     this.soundStatus.classList.toggle('playing', !this.isMuted);
@@ -210,8 +246,8 @@ class RadioPlayer {
    */
   togglePlayback() {
     // Проверяем, что все необходимые элементы существуют
-    if (!this.radioPlayer) {
-      logger.error('Audio element not found');
+    if (!this.getCurrentMediaElement()) {
+      logger.error('Audio/video element not found');
       return;
     }
 
@@ -221,7 +257,7 @@ class RadioPlayer {
       return;
     }
 
-    if (!this.hls && !this.isNativePlayback) {
+    if (!this.hls) {
       this.startPlaybackOptimized();
     } else {
       this.stopPlayback();
@@ -234,101 +270,15 @@ class RadioPlayer {
   startPlaybackOptimized() {
     logger.info('Starting playback (optimized)');
 
-    if (PlatformUtils.isIOS()) {
-      logger.info('iOS detected - using native HLS playback');
-      this.startPlaybackNativeHLS();
-    } else if (window.Hls && window.Hls.isSupported()) {
-      logger.info('Using HLS.js playback');
+    // На iOS используем HLS.js вместо нативного воспроизведения, так как HLS не поддерживается напрямую
+    if (this.isIOS || (window.Hls && window.Hls.isSupported())) {
+      logger.info(
+        this.isIOS ? 'iOS detected - using HLS.js playback with video element' : 'Using HLS.js playback',
+      );
       this.startPlaybackHLSJS();
     } else {
       logger.error('No compatible playback method found');
       showToast('Ваш браузер не поддерживает воспроизведение HLS');
-    }
-  }
-
-  /**
-   * Нативное воспроизведение для iOS
-   */
-  startPlaybackNativeHLS() {
-    if (this.hls) {
-      this.stopPlayback();
-    }
-
-    this.isNativePlayback = true;
-    this.isBuffering = true;
-    this.updatePlayButton();
-    this.updateStatusIndicators('buffering');
-
-    try {
-      this.radioPlayer.src = this.streamUrl;
-
-      // Удаляем предыдущие обработчики перед добавлением новых
-      this.removeAllEventListeners();
-
-      this.radioPlayer.addEventListener('play', this.handlePlay.bind(this));
-      this.radioPlayer.addEventListener('pause', this.handlePause.bind(this));
-      this.radioPlayer.addEventListener('playing', () => {
-        logger.info('Native playback: playing event');
-        this.isBuffering = false;
-        this.updatePlayButton();
-        this.updateStatusIndicators('playing');
-        this.resetRetryCounts();
-      });
-      this.radioPlayer.addEventListener('error', (e) => {
-        if (this.isStoppingPlayback) {
-          logger.debug('Error ignored: stopping playback');
-          return;
-        }
-        logger.error('Native playback error', {
-          code: this.radioPlayer.error?.code,
-          message: this.radioPlayer.error?.message,
-        });
-        showToast('Ошибка воспроизведения');
-        this.isNativePlayback = false;
-        this.handleFatalError();
-      });
-      this.radioPlayer.addEventListener('canplay', this.handleCanPlay.bind(this));
-      this.radioPlayer.addEventListener('loadstart', () => {
-        logger.info('Native playback: loadstart');
-        this.isBuffering = true;
-        this.updateStatusIndicators('buffering');
-      });
-
-      logger.info('Attempting to play native HLS');
-      const playPromise = this.radioPlayer.play();
-
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            logger.info('Native HLS playback started successfully');
-            this.isBuffering = false;
-            this.updatePlayButton();
-            this.updateStatusIndicators('playing');
-            this.resetRetryCounts();
-          })
-          .catch((error) => {
-            logger.error('Native HLS play error', error);
-            this.isNativePlayback = false;
-            if (error.name === 'NotAllowedError') {
-              logger.warn('User interaction required for native HLS');
-              showToast('Нажмите кнопку для начала воспроизведения');
-              this.updateStatusIndicators('offline');
-            } else if (error.name === 'NotSupportedError') {
-              logger.error('HLS format not supported by native player');
-              showToast('Ваш браузер не поддерживает HLS');
-            } else {
-              showToast('Ошибка при воспроизведении: ' + error.message);
-              this.handleFatalError();
-            }
-          });
-      }
-    } catch (error) {
-      logger.error('Error setting up native HLS', {
-        message: error.message,
-        stack: error.stack,
-      });
-      showToast('Ошибка инициализации плеера');
-      this.handleFatalError();
     }
   }
 
@@ -370,10 +320,11 @@ class RadioPlayer {
 
       // Привязываем медиа
       try {
-        this.hls.attachMedia(this.radioPlayer);
-        logger.info('Media attached to audio element');
+        const mediaElement = this.getCurrentMediaElement();
+        this.hls.attachMedia(mediaElement);
+        logger.info('Media attached to ' + (this.isIOS ? 'video' : 'audio') + ' element');
       } catch (attachError) {
-        logger.error('Failed to attach media to audio element', {
+        logger.error('Failed to attach media to ' + (this.isIOS ? 'video' : 'audio') + ' element', {
           error: attachError.message,
         });
         showToast('Ошибка подключения аудиоустройства.');
@@ -383,7 +334,8 @@ class RadioPlayer {
 
       this.hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
         logger.info('Manifest parsed successfully');
-        this.radioPlayer
+        const mediaElement = this.getCurrentMediaElement();
+        mediaElement
           .play()
           .then(() => {
             logger.info('Playback started');
@@ -430,10 +382,11 @@ class RadioPlayer {
 
       this.removeAllEventListeners();
 
-      this.radioPlayer.addEventListener('pause', this.handlePause.bind(this));
-      this.radioPlayer.addEventListener('play', this.handlePlay.bind(this));
-      this.radioPlayer.addEventListener('waiting', this.handleWaiting.bind(this));
-      this.radioPlayer.addEventListener('canplay', this.handleCanPlay.bind(this));
+      const mediaElement = this.getCurrentMediaElement();
+      mediaElement.addEventListener('pause', this.handlePause.bind(this));
+      mediaElement.addEventListener('play', this.handlePlay.bind(this));
+      mediaElement.addEventListener('waiting', this.handleWaiting.bind(this));
+      mediaElement.addEventListener('canplay', this.handleCanPlay.bind(this));
 
       logger.info('All HLS.js event handlers attached');
     } catch (error) {
@@ -446,17 +399,18 @@ class RadioPlayer {
   }
 
   /**
-   * Удаляет все обработчики событий из аудиоэлемента
+   * Удаляет все обработчики событий из аудио/видеоэлемента
    */
   removeAllEventListeners() {
+    const mediaElement = this.getCurrentMediaElement();
     // Удаляем обработчики, используя те же функции, что и при добавлении
-    this.radioPlayer.removeEventListener('pause', this.handlePause.bind(this));
-    this.radioPlayer.removeEventListener('play', this.handlePlay.bind(this));
-    this.radioPlayer.removeEventListener('waiting', this.handleWaiting.bind(this));
-    this.radioPlayer.removeEventListener('canplay', this.handleCanPlay.bind(this));
-    this.radioPlayer.removeEventListener('playing', this.handlePlaying.bind(this));
-    this.radioPlayer.removeEventListener('error', this.handleMediaError.bind(this));
-    this.radioPlayer.removeEventListener('loadstart', this.handleLoadStart.bind(this));
+    mediaElement.removeEventListener('pause', this.handlePause.bind(this));
+    mediaElement.removeEventListener('play', this.handlePlay.bind(this));
+    mediaElement.removeEventListener('waiting', this.handleWaiting.bind(this));
+    mediaElement.removeEventListener('canplay', this.handleCanPlay.bind(this));
+    mediaElement.removeEventListener('playing', this.handlePlaying.bind(this));
+    mediaElement.removeEventListener('error', this.handleMediaError.bind(this));
+    mediaElement.removeEventListener('loadstart', this.handleLoadStart.bind(this));
   }
 
   /**
@@ -486,7 +440,6 @@ class RadioPlayer {
   stopPlayback() {
     logger.info('Stopping playback');
     this.isBuffering = false;
-    this.isNativePlayback = false;
     this.isStoppingPlayback = true;
     clearTimeout(this.retryTimeout);
 
@@ -512,8 +465,9 @@ class RadioPlayer {
       window.removeEventListener('offline', this.eventHandlers.handleOffline);
     }
 
-    this.radioPlayer.pause();
-    this.radioPlayer.src = '';
+    const mediaElement = this.getCurrentMediaElement();
+    mediaElement.pause();
+    mediaElement.src = '';
     this.updatePlayButton();
     this.updateStatusIndicators('offline');
     this.resetRetryCounts();
@@ -531,7 +485,8 @@ class RadioPlayer {
   // Функции-обработчики событий
   handlePause() {
     this.updatePlayButton();
-    if (!this.hls && !this.isNativePlayback) {
+    const mediaElement = this.getCurrentMediaElement();
+    if (!this.hls) {
       this.updateStatusIndicators('offline');
     } else if (this.isBuffering) {
       this.updateStatusIndicators('buffering');
@@ -542,7 +497,8 @@ class RadioPlayer {
 
   handlePlay() {
     this.updatePlayButton();
-    if (!this.radioPlayer.waiting) {
+    const mediaElement = this.getCurrentMediaElement();
+    if (!mediaElement.waiting) {
       this.updateStatusIndicators('playing');
     }
     this.resetRetryCounts();
@@ -557,7 +513,8 @@ class RadioPlayer {
   handleCanPlay() {
     this.isBuffering = false;
     this.updatePlayButton();
-    if (!this.radioPlayer.paused) {
+    const mediaElement = this.getCurrentMediaElement();
+    if (!mediaElement.paused) {
       this.updateStatusIndicators('playing');
     }
   }
@@ -566,7 +523,8 @@ class RadioPlayer {
     logger.info('handlePlaying triggered');
     this.isBuffering = false;
     this.updatePlayButton();
-    if (!this.radioPlayer.paused) {
+    const mediaElement = this.getCurrentMediaElement();
+    if (!mediaElement.paused) {
       this.updateStatusIndicators('playing');
     }
   }
@@ -577,14 +535,13 @@ class RadioPlayer {
       return;
     }
 
+    const mediaElement = this.getCurrentMediaElement();
     logger.error('Media error detected', {
-      errorCode: this.radioPlayer.error?.code,
-      errorMessage: this.radioPlayer.error?.message,
+      errorCode: mediaElement.error?.code,
+      errorMessage: mediaElement.error?.message,
     });
 
-    this.isNativePlayback = false;
-
-    switch (this.radioPlayer.error?.code) {
+    switch (mediaElement.error?.code) {
       case 1:
         logger.error('MEDIA_ERR_ABORTED');
         break;
@@ -606,7 +563,7 @@ class RadioPlayer {
   }
 
   handleLoadStart() {
-    logger.info('Audio element: loadstart');
+    logger.info('Audio/video element: loadstart');
   }
 
   // Обработка ошибок и восстановление
@@ -638,7 +595,7 @@ class RadioPlayer {
    */
   handleFatalError() {
     // Проверяем, не был ли уже вызван этот метод недавно, чтобы избежать множественных попыток
-    if (this.isStoppingPlayback || (!this.hls && !this.isNativePlayback)) {
+    if (this.isStoppingPlayback || !this.hls) {
       return;
     }
 
@@ -659,7 +616,7 @@ class RadioPlayer {
     clearTimeout(this.retryTimeout);
     this.retryTimeout = setTimeout(() => {
       // Проверяем снова перед попыткой переподключения
-      if (!this.hls && !this.isNativePlayback) {
+      if (!this.hls) {
         return;
       }
 
@@ -669,7 +626,6 @@ class RadioPlayer {
         this.hls.destroy();
         this.hls = null;
       }
-      this.isNativePlayback = false;
       this.startPlaybackOptimized();
     }, delay);
   }
@@ -693,9 +649,8 @@ class RadioPlayer {
     this.updateMuteButton();
 
     logger.debug('Mute toggled', { isMuted: this.isMuted });
-    this.updateStatusIndicators(
-      (this.hls || this.isNativePlayback) && !this.radioPlayer.paused ? 'playing' : 'offline',
-    );
+    const mediaElement = this.getCurrentMediaElement();
+    this.updateStatusIndicators(this.hls && !mediaElement.paused ? 'playing' : 'offline');
   }
 
   /**
@@ -709,7 +664,8 @@ class RadioPlayer {
       return;
     }
 
-    const wasPlaying = !this.radioPlayer.paused;
+    const mediaElement = this.getCurrentMediaElement();
+    const wasPlaying = !mediaElement.paused;
     this.isMuted = false;
     this.currentVolume = volume;
     StorageUtils.setItem('radioVolume', volume);
@@ -717,17 +673,15 @@ class RadioPlayer {
     this.updateMuteButton();
     logger.debug('Volume set', { volume: volume, wasPlaying });
 
-    if (wasPlaying && this.radioPlayer.paused && (this.hls || this.isNativePlayback)) {
-      this.radioPlayer.play().catch((err) => {
+    if (wasPlaying && mediaElement.paused && this.hls) {
+      mediaElement.play().catch((err) => {
         logger.warn('Could not resume playback after volume change', {
           error: err.message,
           name: err.name,
         });
       });
     }
-    this.updateStatusIndicators(
-      (this.hls || this.isNativePlayback) && !this.radioPlayer.paused ? 'playing' : 'offline',
-    );
+    this.updateStatusIndicators(this.hls && !mediaElement.paused ? 'playing' : 'offline');
   }
 
   /**
@@ -749,9 +703,8 @@ class RadioPlayer {
    * Обработчик события восстановления интернета
    */
   handleOnline() {
-    this.updateStatusIndicators(
-      (this.hls || this.isNativePlayback) && !this.radioPlayer.paused ? 'playing' : 'offline',
-    );
+    const mediaElement = this.getCurrentMediaElement();
+    this.updateStatusIndicators(this.hls && !mediaElement.paused ? 'playing' : 'offline');
   }
 
   /**
@@ -759,7 +712,7 @@ class RadioPlayer {
    */
   handleOffline() {
     this.updateStatusIndicators('offline');
-    if (this.hls || this.isNativePlayback) {
+    if (this.hls) {
       showToast('Интернет пропал. Воспроизведение остановлено.');
       this.handleFatalError();
     }

@@ -26,7 +26,7 @@ class App {
   }
 
   init() {
-     logger.info('INIT:Initializing application');    
+    logger.info('INIT:Initializing application');
     // Создаем обработчики событий
     this.eventHandlers.changePlayer = (e) => this.changePlayer(e);
     this.eventHandlers.keydownHandler = (e) => this.handleKeyDown(e);
@@ -113,11 +113,7 @@ class App {
 
     // Если переключаемся с радио на видео, и радио играло, приостанавливаем его
     if (this.activePlayer === 'radio' && e.target.dataset.player === 'video') {
-      if (
-        this.radioPlayer &&
-        (this.radioPlayer.hls || this.radioPlayer.isNativePlayback) &&
-        !this.radioPlayer.radioPlayer.paused
-      ) {
+      if (this.radioPlayer && this.radioPlayer.hls && !this.radioPlayer.radioPlayer.paused) {
         this.radioPlayer.togglePlayback();
       }
     }
@@ -186,7 +182,7 @@ class App {
     const info = {
       platform: navigator.userAgent,
       isIOS: typeof PlatformUtils !== 'undefined' ? PlatformUtils.isIOS() : 'unknown',
-      isNativePlayback: this.radioPlayer ? this.radioPlayer.isNativePlayback : 'unknown',
+      isNativePlayback: 'deprecated',
       currentVolume: this.radioPlayer ? this.radioPlayer.currentVolume : 'unknown',
       isMuted: this.radioPlayer ? this.radioPlayer.isMuted : 'unknown',
       audioVolume:
@@ -248,7 +244,7 @@ class App {
 
     // Останавливаем радио, если оно активно
     if (this.radioPlayer) {
-      if ((this.radioPlayer.hls || this.radioPlayer.isNativePlayback) && !this.radioPlayer.radioPlayer.paused) {
+      if (this.radioPlayer.hls && !this.radioPlayer.radioPlayer.paused) {
         this.radioPlayer.stopPlayback();
       }
     }
