@@ -1,0 +1,29 @@
+{
+  "name": "avtoradioshow",
+  "version": "1.0.0",
+  "description": "Современное прогрессивное веб-приложение (PWA) для прослушивания радиостанции Авторадио с поддержкой HLS потоков и работой на всех устройствах, включая старые версии iOS.",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node update-sw.cjs",
+    "preview": "vite preview",
+    "postbuild": "node update-sw.cjs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deyatele/avtoradioshow.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/deyatele/avtoradioshow/issues"
+  },
+  "homepage": "https://github.com/deyatele/avtoradioshow#readme",
+  "devDependencies": {
+    "vite": "^7.3.1",
+    "terser": "^5.15.0"
+  }
+}

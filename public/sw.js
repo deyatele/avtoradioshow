@@ -1,46 +1,51 @@
 // Service Worker для PWA
-const VERSION = 'v1.0.9';
+const VERSION = 'v1.0.12-build-minimal-logs'; // Обновленная версия для новой системы сборки
 const CACHE_NAME = 'avtoradio-pwa-' + VERSION;
-const urlsToCache = [
-  './',
-  './index.html',
-  './style.css',
-  './App.js',
-  './RadioPlayer.js',
-  './VideoPlayer.js',
-  './utils.js',
-  './loging.js',
-  './hls.js',
-  './favicon.ico',
-  './assets/fonts/all.min.css',
-  './assets/fonts/fa-solid-900.woff2',
-  './assets/icon-72x72.png',
-  './assets/icon-96x96.png',
-  './assets/icon-128x128.png',
-  './assets/icon-144x144.png',
-  './assets/icon-152x152.png',
-  './assets/icon-192x192.png',
-  './assets/icon-384x384.png',
-  './assets/icon-512x512.png',
-  './assets/logo.png',
-];
 
-// Установка Service Worker и кэширование ресурсов
+// Основные файлы, которые точно должны быть закэшированы
+const essentialAssets = [
+  '/',
+  '/index.html',
+  '/style.css',
+  '/vendor/hls.js',
+  '/favicon.ico',
+  '/manifest.json',
+  '/assets/fonts/all.min.css',
+  '/assets/fonts/fa-solid-900.woff2',
+  '/assets/icon-72x72.png',
+  '/assets/icon-96x96.png',
+  '/assets/icon-128x128.png',
+  '/assets/icon-144x144.png',
+  '/assets/icon-152x152.png',
+  '/assets/icon-192x192.png',
+  '/assets/icon-384x384.png',
+  '/assets/icon-512x512.png',
+  '/assets/logo.png',
+  // Добавляем файлы, созданные при сборке
+  '/assets/app-BHKuZ8ql.js',
+  '/assets/main--Pg9dGEj.js',
+  '/assets/radio-yQnSXHBJ.js',
+  '/assets/utils-DbqC9gue.js',
+  '/assets/video-De6f9RLX.js',
+  '/assets/vendor/hls.js',
+  '/assets/style.css'
+  // ]
+;
+
+// Установка Service Worker и кэширование основных ресурсов
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
       .then((cache) => {
         return Promise.all(
-          urlsToCache.map(async (urlToCache) => {
+          essentialAssets.map(async (urlToCache) => {
             try {
-              // Проверяем, что URL начинается с точки для правильного формирования пути
               const fullUrl = new URL(urlToCache, self.location.origin).href;
-              return await cache.add(fullUrl);
+              await cache.add(fullUrl);
             } catch (err) {
+              // Логируем только ошибки кэширования важных ресурсов
               console.warn(`Не удалось закэшировать: ${urlToCache}`, err);
-              // Не прерываем установку из-за одной ошибки кэширования
-              return Promise.resolve();
             }
           }),
         );
@@ -109,6 +114,7 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         }
+        
         return fetch(event.request)
           .then((networkResponse) => {
             // Кэшируем ответ для будущих запросов (только для статических ресурсов)
@@ -132,8 +138,8 @@ self.addEventListener('fetch', (event) => {
           })
           .catch(() => {
             // Если нет сетевого ответа, проверяем, может быть это критичный ресурс
-            if (urlsToCache.some((cachedUrl) => new URL(cachedUrl, self.location.origin).href === url.href)) {
-              return caches.match('./index.html'); // Возвращаем главную страницу вместо конкретного ресурса
+            if (essentialAssets.some((cachedUrl) => new URL(cachedUrl, self.location.origin).href === url.href)) {
+              return caches.match('/index.html');
             }
             return new Response('Вы оффлайн и запрошенный ресурс не найден в кэше.', {
               status: 404,
@@ -167,7 +173,6 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
-            console.log('Удаление старого кэша:', cacheName);
             return caches.delete(cacheName).catch((err) => {
               console.warn('Ошибка при удалении старого кэша:', err);
             });
@@ -175,7 +180,6 @@ self.addEventListener('activate', (event) => {
         }),
       )
         .then(() => {
-          console.log('Старые кэши удалены, активируем новый Service Worker');
           return clients.claim(); // Берем контроль над всеми клиентами
         })
         .catch((err) => {

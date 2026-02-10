@@ -1,5 +1,6 @@
 import RadioPlayer from './RadioPlayer.js';
 import VideoPlayer from './VideoPlayer.js';
+
 import { StorageUtils, PlatformUtils } from './utils.js';
 
 class App {
@@ -104,8 +105,6 @@ class App {
    * @param {Event} e - событие клика
    */
   changePlayer(e) {
-    console.dir(e.target.dataset.player);
-
     // Если переключаемся с видео на радио, останавливаем видео
     if (this.activePlayer === 'video' && e.target.dataset.player === 'radio') {
       this.videoPlayer.closeVideo();

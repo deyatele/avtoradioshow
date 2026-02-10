@@ -8,15 +8,15 @@
   <!-- Подключаем Font Awesome -->
   <link rel="stylesheet" href="assets/fonts/all.min.css">
   <!-- Подключаем библиотеку hls.js -->
-  <script src="hls.js"></script>
+  <script src="/vendor/hls.js"></script>
   <!-- Подключаем внешние стили -->
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="/style.css">
   <!-- Favicon -->
-  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
   <!-- PWA мета-теги -->
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#1a1a1a">
-  <link rel="apple-touch-icon" href="assets/icon-192x192.png">
+  <link rel="apple-touch-icon" href="/assets/icon-192x192.png">
   <!-- PWA мета-теги для Apple устройств -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -62,7 +62,6 @@
             <div class="status-text">Воспроизведение</div>
           </div>
           <div id="soundStatus" class="status-indicator">
-            <div class="status-dot" aria-hidden="true"></div>
             <div class="status-text">Звук</div>
           </div>
         </div>
@@ -85,26 +84,14 @@
     style="position: fixed; bottom: 10px; right: 10px; width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.3); border: none; color: white; font-size: 20px; cursor: pointer; z-index: 9999; display: none;"
     title="Открыть логи" aria-label="Открыть журнал отладки" onclick="window.showRadioLogs()">🔍</button>
 
-  <!-- Подключаем внешний JavaScript файл -->
-  <script src="loging.js"></script>
-  <script src="global-functions.js"></script>
-  <script type="module" src="App.js"></script>
-  <script type="module">
-    import App from './App.js';
-    // Инициализация приложения после полной загрузки DOM
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => {
-        new App();
-      });
-    } else {
-      new App();
-    }
-  </script>
+  <!-- Main application entry point -->
+  <script type="module" src="/src/main.js"></script>
+
   <!-- Регистрация Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
+        navigator.serviceWorker.register('/sw.js')
           .then(registration => {
             // console.log('Service Worker зарегистрирован с областью:', registration.scope);
           })

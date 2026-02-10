@@ -8,6 +8,7 @@ window.ERROR_LOGS = false;
 /**
  * Логгер с поддержкой различных уровней логирования
  */
+
 const logger = {
   logs: [],
   maxLogs: 500,
@@ -88,7 +89,7 @@ const logger = {
     });
   },
 
-  info(msg, data) {
+  info(msg, data) {    
     this.log('INFO', msg, data);
   },
   error(msg, data) {
@@ -119,6 +120,7 @@ const logger = {
     URL.revokeObjectURL(url);
   },
 };
+
 
 // Логирование необработанных ошибок
 window.addEventListener('error', (event) => {
@@ -162,6 +164,9 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // === ФУНКЦИИ ОТЛАДКИ ===
+// Делаем logger глобально доступным
+window.logger = logger;
+
 // Экспортируем логи для доступа из консоли браузера
 window.getRadioLogs = () => logger.getLogs();
 window.downloadRadioLogs = () => logger.downloadLogs();
