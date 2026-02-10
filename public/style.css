@@ -289,11 +289,10 @@ body {
 .video-wrapper {
     position: relative;
     width: 100%;
-    max-width: 640px;
+    min-width: 840px;
     margin: 0 auto;
     aspect-ratio: 16 / 9;
     min-height: 300px;
-    width: 100%;
 }
 
 .video-wrapper iframe {
@@ -306,6 +305,13 @@ body {
 }
 
 /* Адаптивный дизайн */
+@media (max-width:1200px) {
+    .video-wrapper {
+        max-width: 640px;
+        min-width: 100%;
+    }
+}
+
 @media (max-width: 600px) {
     .radio-player-container {
         width: 95%;
@@ -334,6 +340,7 @@ body {
     .video-wrapper {
         max-width: 100%;
         min-height: 200px;
+        min-width: 100%
     }
 
     .player-container {
@@ -349,5 +356,33 @@ body {
         padding: 10px 30px;
     }
 
+
+}
+
+@media (max-width: 350px) {
+    .player-container {
+        width: 85%;
+        padding: 0px;
+        min-width:300px;
+    }
+
+    .toggle-button {
+        padding: 10px 10px;
+    }
+
+    .play-btn {
+        width: 80px;
+        height: 80px;
+    }
+
+    .volume-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
+    }
+
+    .status-indicators {
+    display: none;    
+}
 
 }

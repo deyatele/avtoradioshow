@@ -1,5 +1,5 @@
 // Service Worker для PWA
-const VERSION = 'v1.0.12-build-minimal-logs'; // Обновленная версия для новой системы сборки
+const VERSION = 'v1.1.1'; 
 const CACHE_NAME = 'avtoradio-pwa-' + VERSION;
 
 // Основные файлы, которые точно должны быть закэшированы
@@ -29,7 +29,7 @@ const essentialAssets = [
   '/assets/video-De6f9RLX.js',
   '/assets/vendor/hls.js',
   '/assets/style.css'
-  // ]
+   ]
 ;
 
 // Установка Service Worker и кэширование основных ресурсов
