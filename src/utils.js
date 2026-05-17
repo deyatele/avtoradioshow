@@ -1,27 +1,15 @@
 // Утилиты для определения платформы
 const PlatformUtils = {
-  /**
-   * Определяет, является ли устройство iOS
-   * @returns {boolean} true если iOS устройство
-   */
   isIOS() {
     const userAgent = navigator.userAgent || '';
     return /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
   },
 
-  /**
-   * Определяет, является ли устройство Android
-   * @returns {boolean} true если Android устройство
-   */
   isAndroid() {
     const userAgent = navigator.userAgent || '';
     return /Android/.test(userAgent);
   },
 
-  /**
-   * Определяет, является ли iOS старой версией (13 и ниже)
-   * @returns {boolean} true если iOS 13 или старше
-   */
   isOldIOS() {
     const userAgent = navigator.userAgent || '';
     const match = userAgent.match(/OS (\d+)/);
@@ -32,7 +20,6 @@ const PlatformUtils = {
     return false;
   },
 
-  // Локальная проверка iOS версии (не зависим от внешнего скрипта)
   detectOldIOSLocal() {
     try {
       const ua = navigator.userAgent || '';
@@ -49,26 +36,13 @@ const PlatformUtils = {
   },
 };
 
-// Утилиты для обработки событий
 const EventUtils = {
-  /**
-   * Безопасное добавление обработчика события
-   * @param {Element} element - DOM элемент
-   * @param {string} eventType - тип события
-   * @param {Function} handler - обработчик события
-   */
   addSafeEventListener(element, eventType, handler) {
     if (element && typeof element.addEventListener === 'function' && typeof handler === 'function') {
       element.addEventListener(eventType, handler);
     }
   },
 
-  /**
-   * Безопасное удаление обработчика события
-   * @param {Element} element - DOM элемент
-   * @param {string} eventType - тип события
-   * @param {Function} handler - обработчик события
-   */
   removeSafeEventListener(element, eventType, handler) {
     if (element && typeof element.removeEventListener === 'function' && typeof handler === 'function') {
       element.removeEventListener(eventType, handler);
@@ -76,23 +50,14 @@ const EventUtils = {
   },
 };
 
-// Утилиты для работы с localStorage
 const StorageUtils = {
-  /**
-   * Безопасное получение значения из localStorage
-   * @param {string} key - ключ
-   * @param {*} defaultValue - значение по умолчанию
-   * @returns {*} значение из localStorage или значение по умолчанию
-   */
   getItem(key, defaultValue = null) {
-    // Проверяем, что ключ является строкой
     if (typeof key !== 'string') {
       console.warn('StorageUtils.getItem: key must be a string');
       return defaultValue;
     }
 
     try {
-      // Проверяем поддержку localStorage
       if (!this.isLocalStorageSupported()) {
         return defaultValue;
       }
@@ -105,20 +70,13 @@ const StorageUtils = {
     }
   },
 
-  /**
-   * Безопасная запись значения в localStorage
-   * @param {string} key - ключ
-   * @param {*} value - значение
-   */
   setItem(key, value) {
-    // Проверяем, что ключ является строкой
     if (typeof key !== 'string') {
       console.warn('StorageUtils.setItem: key must be a string');
       return;
     }
 
     try {
-      // Проверяем поддержку localStorage
       if (!this.isLocalStorageSupported()) {
         return;
       }
@@ -129,19 +87,13 @@ const StorageUtils = {
     }
   },
 
-  /**
-   * Безопасное удаление значения из localStorage
-   * @param {string} key - ключ
-   */
   removeItem(key) {
-    // Проверяем, что ключ является строкой
     if (typeof key !== 'string') {
       console.warn('StorageUtils.removeItem: key must be a string');
       return;
     }
 
     try {
-      // Проверяем поддержку localStorage
       if (!this.isLocalStorageSupported()) {
         return;
       }
@@ -152,10 +104,6 @@ const StorageUtils = {
     }
   },
 
-  /**
-   * Проверяет, доступен ли localStorage
-   * @returns {boolean} true если localStorage поддерживается
-   */
   isLocalStorageSupported() {
     try {
       const testKey = '__storage_test__';
@@ -168,28 +116,15 @@ const StorageUtils = {
   },
 };
 
-// Утилиты для проверки доступности API
 const ApiUtils = {
-  /**
-   * Проверяет, доступен ли Service Worker
-   * @returns {boolean} true если Service Worker поддерживается
-   */
   isServiceWorkerSupported() {
     return 'serviceWorker' in navigator;
   },
 
-  /**
-   * Проверяет, доступен ли Web Audio API
-   * @returns {boolean} true если Web Audio API поддерживается
-   */
   isWebAudioAPISupported() {
     return !!(window.AudioContext || window.webkitAudioContext);
   },
 
-  /**
-   * Проверяет, доступен ли Media Session API
-   * @returns {boolean} true если Media Session API поддерживается
-   */
   isMediaSessionAPISupported() {
     return 'mediaSession' in navigator;
   },

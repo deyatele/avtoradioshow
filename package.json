@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node update-sw.cjs",
+    "build": "node update-sw.cjs && vite build",
     "preview": "vite preview",
     "postbuild": "node update-sw.cjs",
     "test": "echo \"Error: no test specified\" && exit 1"

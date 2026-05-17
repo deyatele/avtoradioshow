@@ -1,24 +1,13 @@
-// === ЛОГИРОВАНИЕ ДЛЯ ОТЛАДКИ ===
 window.DEBUG_MODE = true;
 window.INFO_MODE = true;
 window.WARN_MODE = true;
 window.ERROR_MODE = true;
 window.ERROR_LOGS = false;
 
-/**
- * Логгер с поддержкой различных уровней логирования
- */
-
 const logger = {
   logs: [],
   maxLogs: 500,
 
-  /**
-   * Основной метод логирования
-   * @param {string} level - уровень логирования (DEBUG, INFO, WARN, ERROR)
-   * @param {string} message - сообщение
-   * @param {any} data - дополнительные данные
-   */
   log(level, message, data = null) {
     if (!window.ERROR_LOGS) {
       return;
@@ -51,7 +40,6 @@ const logger = {
       this.logs.shift();
     }
 
-    // Разные методы вывода в зависимости от уровня
     switch (level) {
       case 'ERROR':
         console.error(`[${timestamp}] ${level}: ${message}`, data);
@@ -73,11 +61,6 @@ const logger = {
     }
   },
 
-  /**
-   * Безопасная сериализация объектов в JSON
-   * @param {any} obj - объект для сериализации
-   * @returns {string} строковое представление объекта
-   */
   safeStringify(obj) {
     const seen = new WeakSet();
     return JSON.stringify(obj, (key, val) => {
@@ -89,7 +72,7 @@ const logger = {
     });
   },
 
-  info(msg, data) {    
+  info(msg, data) {
     this.log('INFO', msg, data);
   },
   error(msg, data) {
@@ -121,8 +104,6 @@ const logger = {
   },
 };
 
-
-// Логирование необработанных ошибок
 window.addEventListener('error', (event) => {
   logger.error('Uncaught error', {
     message: event.message,
@@ -147,14 +128,12 @@ logger.info('=== ПРИЛОЖЕНИЕ ЗАПУЩЕНО ===', {
   timestamp: new Date().toISOString(),
 });
 
-// Логирование действий пользователя
 window.addEventListener('beforeunload', () => {
   logger.info('=== ПРИЛОЖЕНИЕ ЗАКРЫВАЕТСЯ ===', {
     timestamp: new Date().toISOString(),
   });
 });
 
-// Логирование visibility change
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     logger.info('App backgrounded (page hidden)');
@@ -163,11 +142,9 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-// === ФУНКЦИИ ОТЛАДКИ ===
-// Делаем logger глобально доступным
+
 window.logger = logger;
 
-// Экспортируем логи для доступа из консоли браузера
 window.getRadioLogs = () => logger.getLogs();
 window.downloadRadioLogs = () => logger.downloadLogs();
 window.clearRadioLogs = () => logger.clearLogs();

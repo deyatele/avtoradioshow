@@ -4,24 +4,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Плеер Avtoradio</title>
-  <!-- Подключаем Font Awesome -->
+  <title>Плеер Авторадио</title>
   <link rel="stylesheet" href="assets/fonts/all.min.css">
-  <!-- Подключаем библиотеку hls.js -->
   <script src="/vendor/hls.js"></script>
-  <!-- Подключаем внешние стили -->
   <link rel="stylesheet" href="/style.css">
-  <!-- Favicon -->
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
-  <!-- PWA мета-теги -->
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#1a1a1a">
   <link rel="apple-touch-icon" href="/assets/icon-192x192.png">
-  <!-- PWA мета-теги для Apple устройств -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Avtoradio">
+
+  <!-- Yandex.Metrika counter -->
+  <script type="text/javascript">
+    (function (m, e, t, r, i, k, a) {
+      m[i] = m[i] || function () { (m[i].a = m[i].a || []).push(arguments) };
+      m[i].l = 1 * new Date();
+      for (var j = 0; j < document.scripts.length; j++) { if (document.scripts[j].src === r) { return; } }
+      k = e.createElement(t), a = e.getElementsByTagName(t)[0], k.async = 1, k.src = r, a.parentNode.insertBefore(k, a)
+    })(window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js?id=106830668', 'ym');
+
+    ym(106830668, 'init', { ssr: true, webvisor: true, clickmap: true, ecommerce: "dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce: true, trackLinks: true });
+  </script>
+  <noscript>
+    <div><img src="https://mc.yandex.ru/watch/106830668" style="position:absolute; left:-9999px;" alt="" /></div>
+  </noscript>
+  <!-- /Yandex.Metrika counter -->
+
 </head>
 
 <body>
@@ -77,18 +88,14 @@
   <audio id="radioPlayer" style="display: none;" preload="none" playsinline webkit-playsinline
     aria-label="Аудиоплеер"></audio>
 
-  <!-- Элемент для всплывающего сообщения -->
   <div id="toast" class="toast" role="alert" aria-live="polite"></div>
 
-  <!-- Кнопка отладки  -->
   <button id="debugButton"
     style="position: fixed; bottom: 10px; right: 10px; width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.3); border: none; color: white; font-size: 20px; cursor: pointer; z-index: 9999; display: none;"
     title="Открыть логи" aria-label="Открыть журнал отладки" onclick="window.showRadioLogs()">🔍</button>
 
-  <!-- Main application entry point -->
   <script type="module" src="/src/main.js"></script>
 
-  <!-- Регистрация Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {

@@ -39,12 +39,12 @@ function updateSWWithBuildFiles() {
   const buildJsPaths = jsFiles.map(file => {
     // Убираем лишние слеши и корректируем путь
     const cleanPath = file.replace(/\\/g, '/');
-    return `/${cleanPath.startsWith('assets/') ? '' : 'assets/'}${cleanPath}`;
+    return `/${cleanPath}`;
   });
   const buildCssPaths = cssFiles.map(file => {
     // Убираем лишние слеши и корректируем путь
     const cleanPath = file.replace(/\\/g, '/');
-    return `/${cleanPath.startsWith('assets/') ? '' : 'assets/'}${cleanPath}`;
+    return `/${cleanPath}`;
   });
   
   // Объединяем все пути
@@ -54,7 +54,7 @@ function updateSWWithBuildFiles() {
   let swContent = fs.readFileSync(swPath, 'utf8');
   
   // Находим секцию с массивом essentialAssets и заменяем её
-  const essentialAssetsRegex = /(const essentialAssets = \[)([\s\S]*?)(\/\/ \].*\n])/;
+  const essentialAssetsRegex = /const\s+essentialAssets\s*=\s*\[(?:.|\n|\r)*?\]\s*;/m;
   
   // Формируем новую секцию с файлами
   const newEssentialAssetsSection = `const essentialAssets = [
@@ -77,7 +77,8 @@ function updateSWWithBuildFiles() {
   '/assets/logo.png',
   // Добавляем файлы, созданные при сборке
   ${buildAssets.map(file => `'${file}'`).join(',\n  ')}
-  // ]
+  
+  ]
 `;
 
   // Заменяем старую секцию на новую

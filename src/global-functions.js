@@ -1,9 +1,3 @@
-// Глобальные функции, используемые в приложении
-
-/**
- * Показывает всплывающее сообщение пользователю
- * @param {string} message - текст сообщения
- */
 function showToast(message) {
   const toast = document.getElementById('toast');
   if (!toast) {
@@ -18,16 +12,12 @@ function showToast(message) {
   }, 3000);
 }
 
-// Экспортируем функцию для использования в других модулях
 window.showToast = showToast;
 
-// Также экспортируем другие функции, которые могут использоваться
-// как глобальные в различных частях приложения
 if (typeof window.logger === 'undefined') {
-  window.logger = null; // будет определен в loging.js
+  window.logger = null; 
 }
 
-// Функции отладки, которые могут быть вызваны из консоли
 if (typeof window.showRadioLogs === 'undefined') {
   window.showRadioLogs = () => {};
 }

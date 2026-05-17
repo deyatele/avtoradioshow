@@ -1,13 +1,11 @@
 // Service Worker для PWA
-const VERSION = 'v1.1.1'; 
+const VERSION = 'v1.1.2'; 
 const CACHE_NAME = 'avtoradio-pwa-' + VERSION;
 
 // Основные файлы, которые точно должны быть закэшированы
 const essentialAssets = [
   '/',
   '/index.html',
-  '/style.css',
-  '/vendor/hls.js',
   '/favicon.ico',
   '/manifest.json',
   '/assets/fonts/all.min.css',
@@ -22,15 +20,15 @@ const essentialAssets = [
   '/assets/icon-512x512.png',
   '/assets/logo.png',
   // Добавляем файлы, созданные при сборке
-  '/assets/app-BHKuZ8ql.js',
-  '/assets/main--Pg9dGEj.js',
-  '/assets/radio-yQnSXHBJ.js',
+  '/assets/app-Bge9OKCF.js',
+  '/assets/main-BxFBQdWS.js',
+  '/assets/radio-6yp5MGZj.js',
   '/assets/utils-DbqC9gue.js',
-  '/assets/video-De6f9RLX.js',
-  '/assets/vendor/hls.js',
-  '/assets/style.css'
-   ]
-;
+  '/assets/video-BMsL3ZUF.js',
+  '/vendor/hls.js',
+  '/style.css'
+  ]
+
 
 // Установка Service Worker и кэширование основных ресурсов
 self.addEventListener('install', (event) => {

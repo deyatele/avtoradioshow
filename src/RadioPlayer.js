@@ -11,39 +11,31 @@ class RadioPlayer {
     this.soundStatus = document.getElementById('soundStatus');
     this.networkStatus = document.getElementById('networkStatus');
 
-    // Настройки потока
-    this.streamUrl = 'https://hls-01-gpm.hostingradio.ru/avtoradio495/playlist.m3u8';
+    this.streamUrl = 'https://hls-01-gpm.hostingradio.ru/avtoradio831/playlist.m3u8';
 
-    // Состояния
     this.hls = null;
-    this.isStoppingPlayback = false; // Флаг для игнорирования ошибок при намеренной остановке
+    this.isStoppingPlayback = false;
     this.isMuted = StorageUtils.getItem('radioMuted', false);
     this.currentVolume = StorageUtils.getItem('radioVolume', 1);
     this.isBuffering = false;
 
-    // Проверяем, является ли устройство iOS и какая версия
     this.isIOS = PlatformUtils.isIOS();
     this.isOldIOS = this.isIOS && PlatformUtils.isOldIOS();
 
     if (this.isIOS && this.isOldIOS) {
-      // Для старых версий iOS (до 14) создаем скрытый видеоэлемент для HLS воспроизведения
       this.createHiddenVideoElement();
     }
 
-    // Определяем элемент, который будем использовать для воспроизведения
     this.mediaElement = this.isIOS && this.isOldIOS ? this.videoElement : this.radioPlayer;
 
-    // Переменные для логики переподключения
     this.fatalRetryCount = 0;
     this.maxFatalRetries = 5;
     this.nonFatalRetryCount = 0;
-    this.maxNonFatalRetries = 10; // Увеличим порог для нефатальных ошибок
+    this.maxNonFatalRetries = 10;
     this.retryTimeout = null;
 
-    // Хранилище обработчиков событий для возможности их удаления
     this.eventHandlers = {};
 
-    // Конфигурация HLS.js
     this.hlsConfig = {
       lowLatencyMode: true,
       maxBufferLength: 3,
@@ -71,11 +63,7 @@ class RadioPlayer {
     this.init();
   }
 
-  /**
-   * Создает скрытый видеоэлемент для iOS
-   */
   createHiddenVideoElement() {
-    // Создаем видеоэлемент
     this.videoElement = document.createElement('video');
     this.videoElement.style.display = 'none';
     this.videoElement.setAttribute('preload', 'none');
@@ -83,30 +71,21 @@ class RadioPlayer {
     this.videoElement.setAttribute('webkit-playsinline', '');
     this.videoElement.setAttribute('aria-label', 'Видеоплеер (для iOS)');
 
-    // Добавляем в DOM после существующего audio элемента
     this.radioPlayer.parentNode.insertBefore(this.videoElement, this.radioPlayer.nextSibling);
   }
 
-  /**
-   * Возвращает текущий элемент воспроизведения (аудио или видео)
-   */
   getCurrentMediaElement() {
     return this.isOldIOS ? this.videoElement : this.radioPlayer;
   }
 
-  /**
-   * Инициализирует плеер, загружает сохраненные настройки и подключает обработчики событий
-   */
   init() {
     try {
       logger.info('Initializing player...');
 
-      // Проверяем наличие необходимых DOM элементов
       if (!this.playButton || !this.muteButton || !this.volumeSlider || !this.radioPlayer) {
         throw new Error('Required DOM elements not found');
       }
 
-      // Загружаем сохраненные настройки
       this.isMuted = StorageUtils.getItem('radioMuted', false);
       this.currentVolume = StorageUtils.getItem('radioVolume', 1);
       logger.debug('Loaded settings', { isMuted: this.isMuted, currentVolume: this.currentVolume });
@@ -116,21 +95,18 @@ class RadioPlayer {
       this.updateVolume();
       this.updateStatusIndicators('offline');
 
-      // Создаем и сохраняем обработчики событий для возможности их удаления
       this.eventHandlers.togglePlayback = this.togglePlayback.bind(this);
       this.eventHandlers.toggleMute = this.toggleMute.bind(this);
       this.eventHandlers.handleVolumeChange = this.handleVolumeChange.bind(this);
       this.eventHandlers.handleOnline = this.handleOnline.bind(this);
       this.eventHandlers.handleOffline = this.handleOffline.bind(this);
 
-      // Подключаем обработчики основных событий
       this.playButton.addEventListener('click', this.eventHandlers.togglePlayback);
       this.muteButton.addEventListener('click', this.eventHandlers.toggleMute);
       this.volumeSlider.addEventListener('input', this.eventHandlers.handleVolumeChange);
       window.addEventListener('online', this.eventHandlers.handleOnline);
       window.addEventListener('offline', this.eventHandlers.handleOffline);
 
-      // Проверяем платформу и скрываем элементы управления громкостью на iPhone
       setTimeout(() => {
         try {
           const isIOSDevice = PlatformUtils.isIOS() || /iP(hone|ad|od)/.test(navigator.userAgent);
@@ -156,9 +132,6 @@ class RadioPlayer {
     }
   }
 
-  /**
-   * Обновляет кнопку воспроизведения на основе состояния плеера
-   */
   updatePlayButton() {
     if (this.isBuffering) {
       this.playButton.innerHTML = '<div class="spinner" aria-label="Загрузка..."></div>';
@@ -175,9 +148,6 @@ class RadioPlayer {
     }
   }
 
-  /**
-   * Обновляет иконку и подсказку кнопки отключения звука
-   */
   updateMuteButton() {
     if (this.isMuted) {
       this.muteButton.innerHTML = '<i class="fas fa-volume-mute"></i>';
@@ -188,9 +158,6 @@ class RadioPlayer {
     }
   }
 
-  /**
-   * Обновляет громкость аудиоэлемента и сохраняет значение в localStorage
-   */
   updateVolume() {
     const mediaElement = this.getCurrentMediaElement();
     mediaElement.volume = this.isMuted ? 0 : this.currentVolume;
@@ -205,10 +172,6 @@ class RadioPlayer {
     });
   }
 
-  /**
-   * Обновляет индикаторы статуса на основе состояния сети и воспроизведения
-   * @param {string} networkState - состояние сети ('buffering', 'reconnecting', 'playing', 'offline')
-   */
   updateStatusIndicators(networkState) {
     const mediaElement = this.getCurrentMediaElement();
     this.playStatus.classList.toggle('playing', this.hls && !mediaElement.paused);
@@ -241,17 +204,12 @@ class RadioPlayer {
     }
   }
 
-  /**
-   * Переключает состояние воспроизведения
-   */
   togglePlayback() {
-    // Проверяем, что все необходимые элементы существуют
     if (!this.getCurrentMediaElement()) {
       logger.error('Audio/video element not found');
       return;
     }
 
-    // Проверяем, не выполняется ли остановка в данный момент
     if (this.isStoppingPlayback) {
       logger.warn('Playback stop in progress, ignoring toggle request');
       return;
@@ -264,13 +222,9 @@ class RadioPlayer {
     }
   }
 
-  /**
-   * Оптимизированный запуск воспроизведения с поддержкой iOS
-   */
   startPlaybackOptimized() {
     logger.info('Starting playback (optimized)');
 
-    // На iOS используем HLS.js вместо нативного воспроизведения, так как HLS не поддерживается напрямую
     if (this.isIOS || (window.Hls && window.Hls.isSupported())) {
       logger.info(
         this.isIOS ? 'iOS detected - using HLS.js playback with video element' : 'Using HLS.js playback',
@@ -282,9 +236,6 @@ class RadioPlayer {
     }
   }
 
-  /**
-   * Воспроизведение с использованием HLS.js
-   */
   startPlaybackHLSJS() {
     if (this.hls) {
       this.stopPlayback();
@@ -294,7 +245,6 @@ class RadioPlayer {
     this.updateStatusIndicators('buffering');
 
     try {
-      // Проверяем, поддерживается ли HLS.js
       if (!window.Hls || !window.Hls.isSupported()) {
         logger.error('HLS.js is not supported in this browser');
         showToast('Ваш браузер не поддерживает HLS. Попробуйте другой браузер.');
@@ -304,7 +254,6 @@ class RadioPlayer {
       this.hls = new window.Hls(this.hlsConfig);
       logger.info('HLS instance created');
 
-      // Загружаем источник
       try {
         this.hls.loadSource(this.streamUrl);
         logger.info('Loading stream', { url: this.streamUrl });
@@ -318,7 +267,6 @@ class RadioPlayer {
         return;
       }
 
-      // Привязываем медиа
       try {
         const mediaElement = this.getCurrentMediaElement();
         this.hls.attachMedia(mediaElement);
@@ -375,7 +323,6 @@ class RadioPlayer {
           logger.warn('Buffer stalled, recovering...');
           this.handleBufferStall();
         } else {
-          // Обработка других типов ошибок
           logger.warn('Non-fatal HLS error, continuing...', data);
         }
       });
@@ -398,12 +345,8 @@ class RadioPlayer {
     }
   }
 
-  /**
-   * Удаляет все обработчики событий из аудио/видеоэлемента
-   */
   removeAllEventListeners() {
     const mediaElement = this.getCurrentMediaElement();
-    // Удаляем обработчики, используя те же функции, что и при добавлении
     mediaElement.removeEventListener('pause', this.handlePause.bind(this));
     mediaElement.removeEventListener('play', this.handlePlay.bind(this));
     mediaElement.removeEventListener('waiting', this.handleWaiting.bind(this));
@@ -413,9 +356,6 @@ class RadioPlayer {
     mediaElement.removeEventListener('loadstart', this.handleLoadStart.bind(this));
   }
 
-  /**
-   * Удаляет все глобальные обработчики событий
-   */
   removeGlobalEventListeners() {
     if (this.eventHandlers.togglePlayback) {
       this.playButton.removeEventListener('click', this.eventHandlers.togglePlayback);
@@ -434,9 +374,6 @@ class RadioPlayer {
     }
   }
 
-  /**
-   * Останавливает воспроизведение и очищает ресурсы
-   */
   stopPlayback() {
     logger.info('Stopping playback');
     this.isBuffering = false;
@@ -450,14 +387,6 @@ class RadioPlayer {
 
     this.removeAllEventListeners();
 
-    // Удаляем только глобальные обработчики, но оставляем обработчики элементов управления
-    // так как они нужны для дальнейшего взаимодействия с плеером
-    // Обработчики кнопок управления (воспроизведение, отключение звука, громкость) НЕ удаляем:
-    // this.playButton.removeEventListener('click', this.eventHandlers.togglePlayback);
-    // this.muteButton.removeEventListener('click', this.eventHandlers.toggleMute);
-    // this.volumeSlider.removeEventListener('input', this.eventHandlers.handleVolumeChange);
-
-    // Удаляем только действительно глобальные обработчики
     if (this.eventHandlers.handleOnline) {
       window.removeEventListener('online', this.eventHandlers.handleOnline);
     }
@@ -472,17 +401,14 @@ class RadioPlayer {
     this.updateStatusIndicators('offline');
     this.resetRetryCounts();
 
-    // Сбрасываем флаг остановки через короткое время
     setTimeout(() => {
       this.isStoppingPlayback = false;
     }, 500);
 
-    // Также сбрасываем любые активные таймеры повторных попыток
     this.fatalRetryCount = 0;
     this.nonFatalRetryCount = 0;
   }
 
-  // Функции-обработчики событий
   handlePause() {
     this.updatePlayButton();
     const mediaElement = this.getCurrentMediaElement();
@@ -566,10 +492,6 @@ class RadioPlayer {
     logger.info('Audio/video element: loadstart');
   }
 
-  // Обработка ошибок и восстановление
-  /**
-   * Обрабатывает застой буфера и пытается его восстановить
-   */
   handleBufferStall() {
     if (!this.hls) {
       return;
@@ -590,11 +512,7 @@ class RadioPlayer {
     }
   }
 
-  /**
-   * Обрабатывает фатальные ошибки и инициирует переподключение
-   */
   handleFatalError() {
-    // Проверяем, не был ли уже вызван этот метод недавно, чтобы избежать множественных попыток
     if (this.isStoppingPlayback || !this.hls) {
       return;
     }
@@ -602,12 +520,11 @@ class RadioPlayer {
     if (this.fatalRetryCount >= this.maxFatalRetries) {
       logger.warn('Превышено максимальное количество попыток восстановления. Останавливаем попытки.');
       showToast('Ошибка подключения к потоку. Проверьте интернет соединение.');
-      this.stopPlayback(); // Полностью останавливаем воспроизведение
+      this.stopPlayback();
       return;
     }
 
     this.fatalRetryCount++;
-    // Ограничиваем максимальную задержку (например, 30 секунд)
     const maxDelay = 30000;
     const delay = Math.min(Math.pow(2, this.fatalRetryCount) * 1000, maxDelay);
 
@@ -615,7 +532,6 @@ class RadioPlayer {
 
     clearTimeout(this.retryTimeout);
     this.retryTimeout = setTimeout(() => {
-      // Проверяем снова перед попыткой переподключения
       if (!this.hls) {
         return;
       }
@@ -630,18 +546,11 @@ class RadioPlayer {
     }, delay);
   }
 
-  /**
-   * Сбрасывает счетчики попыток переподключения
-   */
   resetRetryCounts() {
     this.fatalRetryCount = 0;
     this.nonFatalRetryCount = 0;
   }
 
-  // Управление звуком
-  /**
-   * Переключает режим отключения звука
-   */
   toggleMute() {
     this.isMuted = !this.isMuted;
     StorageUtils.setItem('radioMuted', this.isMuted);
@@ -653,12 +562,7 @@ class RadioPlayer {
     this.updateStatusIndicators(this.hls && !mediaElement.paused ? 'playing' : 'offline');
   }
 
-  /**
-   * Устанавливает громкость воспроизведения
-   * @param {number} volume - значение громкости от 0 до 1
-   */
   setVolume(volume) {
-    // Проверяем, что volume - это число в допустимом диапазоне
     if (typeof volume !== 'number' || volume < 0 || volume > 1) {
       logger.warn('Invalid volume value', { volume, expected: 'number between 0 and 1' });
       return;
@@ -684,10 +588,6 @@ class RadioPlayer {
     this.updateStatusIndicators(this.hls && !mediaElement.paused ? 'playing' : 'offline');
   }
 
-  /**
-   * Обрабатывает изменение громкости с ползунка
-   * @param {Event} e - событие input ползунка
-   */
   handleVolumeChange(e) {
     if (!e || !e.target || typeof e.target.value === 'undefined') {
       logger.warn('Invalid volume change event', { event: e });
@@ -698,18 +598,11 @@ class RadioPlayer {
     this.setVolume(volumeValue);
   }
 
-  // Обработчики глобальных событий
-  /**
-   * Обработчик события восстановления интернета
-   */
   handleOnline() {
     const mediaElement = this.getCurrentMediaElement();
     this.updateStatusIndicators(this.hls && !mediaElement.paused ? 'playing' : 'offline');
   }
 
-  /**
-   * Обработчик события потери интернета
-   */
   handleOffline() {
     this.updateStatusIndicators('offline');
     if (this.hls) {
